@@ -201,4 +201,10 @@ SET motDePasse = :parammotDePasse ');
         return $reponse;
     }
 
+    public static function updateConsentement($idUtilisateur, $aAccepteRGPD, $dateAcceptionRGPD, $IP) {
+        $sql = "UPDATE Utilisateur SET aAccepteRGPD = ?, dateAcceptionRGPD = ?, IP = ? WHERE idUtilisateur = ?";
+        $stmt = self::$pdo->prepare($sql);
+        $stmt->execute([$aAccepteRGPD, $dateAcceptionRGPD, $IP, $idUtilisateur]);
+    }
+
 }
