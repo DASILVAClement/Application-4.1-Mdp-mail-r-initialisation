@@ -70,7 +70,7 @@ VALUES (NULL, :paramdenomination, :paramrueAdresse, :paramcomplementAdresse, :pa
 
         $numCompte = substr($denomination, 0, 8) . "_" . $idEntreprise;
         Modele_Entreprise::Entreprise_Modifier_numCompte($idEntreprise, $numCompte);
-       // Modele_Entreprise::Entreprise_Modifier_motDePasse($idEntreprise, $numCompte);
+        // Modele_Entreprise::Entreprise_Modifier_motDePasse($idEntreprise, $numCompte);
         $desactiver = 0;
         Modele_Entreprise::Entreprise_Modifier_Desactivation($idEntreprise, $desactiver);
         $idUtilisateurEntreprise = Modele_Utilisateur::Utilisateur_Creer($mailContact, "secret", 3);

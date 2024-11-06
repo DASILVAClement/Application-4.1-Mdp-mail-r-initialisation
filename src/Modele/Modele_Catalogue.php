@@ -11,7 +11,7 @@ class Modele_Catalogue
      * @param $connexionPDO : connexion à la base de données
      * @return mixed : le tableau des Produit ou null (something went wrong...)
      */
-static function  Produit_Select()
+    static function  Produit_Select()
     {
         $connexionPDO = Singleton_ConnexionPDO::getInstance();
         $requetePreparee = $connexionPDO->prepare('

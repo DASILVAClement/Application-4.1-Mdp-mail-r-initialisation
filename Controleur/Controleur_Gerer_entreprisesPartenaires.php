@@ -97,7 +97,7 @@ switch ($action) {
             Modele_Entreprise::Entreprise_Modifier_Desactivation($_REQUEST["idEntreprise"], $Entreprise["desactiver"]);
         }
         $listeEntreprise = Modele_Entreprise::Entreprise_Select();
-       // $Utilisateur = Modele_Utilisateur::Utilisateur_Select_ParId($_SESSION["idUtilisateur"]);
+        // $Utilisateur = Modele_Utilisateur::Utilisateur_Select_ParId($_SESSION["idUtilisateur"]);
         $Vue->addToCorps(new Vue_Entreprise_Liste($listeEntreprise));
         break;
     default:

@@ -133,7 +133,7 @@ class Modele_Utilisateur
         $connexionPDO = Singleton_ConnexionPDO::getInstance();
 
         $requetePreparee = $connexionPDO->prepare(
-'UPDATE `utilisateur`
+            'UPDATE `utilisateur`
 SET `login`= :paramlogin, `idCategorie_utilisateur`= :paramidCategorie_utilisateur
 WHERE idUtilisateur = :paramidUtilisateur');
         $requetePreparee->bindParam('paramlogin', $login);
@@ -172,7 +172,7 @@ WHERE idUtilisateur = :paramidUtilisateur');
 
     {
         $connexionPDO = Singleton_ConnexionPDO::getInstance();
-         $requetePreparee = $connexionPDO->prepare(
+        $requetePreparee = $connexionPDO->prepare(
             'UPDATE `utilisateur` 
 SET motDePasse = :parammotDePasse
 WHERE idUtilisateur = :paramidUtilisateur');
@@ -201,10 +201,40 @@ SET motDePasse = :parammotDePasse ');
         return $reponse;
     }
 
-    public static function updateConsentement($idUtilisateur, $aAccepteRGPD, $dateAcceptionRGPD, $IP) {
-        $sql = "UPDATE Utilisateur SET aAccepteRGPD = ?, dateAcceptionRGPD = ?, IP = ? WHERE idUtilisateur = ?";
-        $stmt = self::$pdo->prepare($sql);
-        $stmt->execute([$aAccepteRGPD, $dateAcceptionRGPD, $IP, $idUtilisateur]);
+    /**
+     * @param $connexionPDO
+     * @param $idUtilisateur
+     * @param $motDePasseClair
+     * @return mixed
+     */
+    static function Utilisateur_Modifier_RGPD($idUtilisateur, $RGPD, \DateTime $date, $ip)
+    {
+        $connexionPDO = Singleton_ConnexionPDO::getInstance();
+        $formattedDate = $date->format('Y-m-d H:i:s');
+        $requetePreparee = $connexionPDO->prepare(
+            'UPDATE `utilisateur` 
+    SET aAccepteRGPD = :paramRGPD, dateAcceptionRGPD = :dateAcceptionRGPD, IP = :IP WHERE idUtilisateur = :idUtilisateur'
+        );
+        $requetePreparee->bindParam('paramRGPD', $RGPD);
+        $requetePreparee->bindParam('idUtilisateur', $idUtilisateur);
+        $requetePreparee->bindParam('dateAcceptionRGPD', $formattedDate); // Bind the formatted date string
+        $requetePreparee->bindParam('IP', $ip);
+
+        $reponse = $requetePreparee->execute(); // $reponse is a boolean indicating the status of the query
+        return $reponse;
+    }
+
+
+    static function Utilisateur_Select_RGPD($idUtilisateur)
+    {
+        $connexionPDO = Singleton_ConnexionPDO::getInstance();
+        $requetePreparee = $connexionPDO->prepare('select aAccepteRGPD from `utilisateur` where idUtilisateur = :paramId');
+        $requetePreparee->bindParam('paramId', $idUtilisateur);
+        $reponse = $requetePreparee->execute(); //$reponse boolean sur l'état de la requête
+        $etudiant = $requetePreparee->fetch(PDO::FETCH_ASSOC);
+        if($etudiant != null)
+            return $etudiant['aAccepteRGPD'];
+        return null;
     }
 
 }

@@ -54,6 +54,6 @@ class Vue_Menu_Administration extends Vue_Composant
 
         }
 
-              
+
     }
 }
