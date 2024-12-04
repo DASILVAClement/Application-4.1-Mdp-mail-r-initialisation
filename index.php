@@ -3,9 +3,12 @@
 session_start();
 include_once "vendor/autoload.php";
 
+use App\Modele\Modele_Jeton;
+use App\Modele\Modele_Utilisateur;
 use App\Utilitaire\Vue;
 use App\Vue\Vue_AfficherMessage;
 use App\Vue\Vue_Connexion_Formulaire_client;
+use App\Vue\Vue_Mail_ChoisirNouveauMdp;
 use App\Vue\Vue_Menu_Administration;
 use App\Vue\Vue_Structure_Entete;
 
@@ -44,6 +47,41 @@ else
 //error_log("action : " . $action);
 //utiliser en débuggage pour avoir le type de connexion
 //$Vue->addToCorps(new Vue_AfficherMessage("<br>Action $action<br>"));
+
+
+function handlePasswordChoice($Vue)
+{
+    $token = $_POST['token'] ?? '';
+    error_log("Jeton soumis : $token");
+
+    $mdp1 = $_POST['mdp1'] ?? '';
+    $mdp2 = $_POST['mdp2'] ?? '';
+
+    if ($token && $mdp1 && $mdp2) {
+        if ($mdp1 === $mdp2) {
+            $jetonData = Modele_Jeton::search($token);
+            error_log("Jeton data : " . print_r($jetonData, true));
+
+            if ($jetonData && strtotime($jetonData['dateFin']) > time()) {
+                $hashedPassword = password_hash($mdp1, PASSWORD_BCRYPT);
+                Modele_Utilisateur::Utilisateur_Modifier_motDePasse($jetonData['idUtilisateur'], $hashedPassword);
+                Modele_Jeton::update($jetonData['id']);
+
+                $Vue->addToCorps(new Vue_Connexion_Formulaire_client("Mot de passe réinitialisé avec succès."));
+            } else {
+                $Vue->addToCorps(new Vue_Connexion_Formulaire_client("Jeton invalide ou expiré après soumission."));
+                error_log("Jeton invalide ou expiré.");
+            }
+        } else {
+            $Vue->addToCorps(new Vue_Mail_ChoisirNouveauMdp("Les mots de passe ne correspondent pas. Veuillez réessayer."));
+            error_log("Les mots de passe ne correspondent pas.");
+        }
+    } else {
+        $Vue->addToCorps(new Vue_Mail_ChoisirNouveauMdp("Veuillez remplir tous les champs pour réinitialiser votre mot de passe."));
+        error_log("Champs manquants lors de la soumission du mot de passe.");
+    }
+}
+
 
 switch ($typeConnexion) {
     case "visiteur" :
@@ -104,7 +142,45 @@ switch ($typeConnexion) {
                 include "Controleur/Controleur_Catalogue_client.php";
                 break;
         }
+
+    switch ($action) {
+        case "token":
+            if (isset($_GET['token'])) {
+                $tokenValue = $_GET['token'];
+                $jetonData = Modele_Jeton::search($tokenValue);
+
+                if ($jetonData && strtotime($jetonData['dateFin']) > time()) {
+                    $Vue->addToCorps(new Vue_Mail_ChoisirNouveauMdp($tokenValue));
+                } else {
+                    $Vue->addToCorps(new Vue_Connexion_Formulaire_client("Jeton invalide ou expiré."));
+                }
+            } else {
+                $Vue->addToCorps(new Vue_Connexion_Formulaire_client("Jeton manquant ou URL incorrecte."));
+            }
+            break;
+
+        case "choixmdp":
+            handlePasswordChoice($Vue);
+            break;
+
+        default:
+            $Vue->addToCorps(new Vue_Connexion_Formulaire_client());
+            break;
+    }
+
+    case "token":
+        $token = $_GET['token'] ?? '';
+        if ($token) {
+            $Vue->addToCorps(new Vue_Mail_ChoisirNouveauMdp($tokenValue));
+
+        }
+
+
+        break;
+
     default:
         $Vue->addToCorps(new Vue_AfficherMessage("Type de connexion non reconnu"));
 }
+
+
 $Vue->afficher();

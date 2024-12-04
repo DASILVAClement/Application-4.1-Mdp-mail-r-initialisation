@@ -2,57 +2,56 @@
 
 namespace App\Modele;
 
-class Modele_Jeton {
-    private $mysqli;
+use App\Utilitaire\Singleton_ConnexionPDO;
+use PDO;
 
-    public function __construct($mysqli) {
-        $this->mysqli = $mysqli;
+class Modele_Jeton
+{
+
+    public static function insert($idUtilisateur)
+    {
+        $octetsAleatoires = openssl_random_pseudo_bytes (256) ;
+        $jeton = sodium_bin2base64($octetsAleatoires, SODIUM_BASE64_VARIANT_ORIGINAL);
+        $expiration = date('Y-m-d H:i:s', strtotime('+1 hour'));
+
+        $connexionPDO = Singleton_ConnexionPDO::getInstance();
+        $requetePreparee = $connexionPDO->prepare('
+        INSERT INTO token (valeur, idUtilisateur, dateFin) 
+        VALUES (:valeur, :idUtilisateur, :dateFin)
+    ');
+
+        $requetePreparee->bindValue(':valeur', $jeton);
+        $requetePreparee->bindValue(':idUtilisateur', $idUtilisateur);
+        $requetePreparee->bindValue(':dateFin', $expiration);
+
+        if ($requetePreparee->execute()) {
+            return $jeton;
+        }
+
+        throw new \Exception("Échec de l'insertion du jeton.");
     }
 
-    // Méthode pour insérer un jeton
-    // Méthode pour insérer un jeton
-    public function insert($idUtilisateur, $jeton, $dateExpiration) {
-        $stmt = $this->mysqli->prepare("INSERT INTO token (valeur, codeAction, idUtilisateur, dateFin) VALUES (?, ?, ?, ?)");
-        $codeAction = 1; // Exemple de code d'action, à ajuster selon vos besoins
-        $stmt->bind_param("siss", $jeton, $codeAction, $idUtilisateur, $dateExpiration);
-        $stmt->execute();
-        $stmt->close();
+    public static function update($idJeton)
+    {
+        $connexionPDO = Singleton_ConnexionPDO::getInstance();
+        $stmt = $connexionPDO->prepare('UPDATE token SET dateFin = NOW() WHERE id = :id');
+        $stmt->bindValue(':id', $idJeton);
+
+        if (!$stmt->execute()) {
+            throw new \Exception("Échec de la mise à jour du jeton.");
+        }
     }
 
-    // Méthode pour mettre à jour un jeton pour le déclarer utilisé
-    public function update($jeton) {
-        $stmt = $this->mysqli->prepare("UPDATE token SET codeAction = 0 WHERE valeur = ?");
-        $stmt->bind_param("s", $jeton);
-        $stmt->execute();
-        $stmt->close();
-    }
+    public static function search($valeur)
+    {
+        $connexionPDO = Singleton_ConnexionPDO::getInstance();
+        $stmt = $connexionPDO->prepare('SELECT * FROM token WHERE valeur = :valeur');
+        $stmt->bindValue(':valeur', $valeur);
 
-    // Méthode pour rechercher un jeton par sa valeur
-    public function recherche($jeton) {
-        $stmt = $this->mysqli->prepare("SELECT * FROM token WHERE valeur = ?");
-        $stmt->bind_param("s", $jeton);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $data = $result->fetch_assoc();
-        $stmt->close();
-        return $data;
-    }
+        if ($stmt->execute()) {
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        }
 
-    // Exemple de génération de jeton avec insertion
-    public function genererJeton($idUtilisateur) {
-        $jeton = bin2hex(random_bytes(16)); // Génération d'un jeton aléatoire
-        $dateExpiration = (new \DateTime())->modify('+1 day')->format('Y-m-d H:i:s'); // Définir la date d'expiration
-        $this->insert($idUtilisateur, $jeton, $dateExpiration);
-        return $jeton;
-    }
-
-    // Exemple de récupération de jeton
-    public function recupererJeton($jeton) {
-        return $this->recherche($jeton);
-    }
-
-    // Exemple d'invalidation de jeton
-    public function invaliderJeton($jeton) {
-        $this->update($jeton);
+        throw new \Exception("Échec de la récupération du jeton.");
     }
 }
